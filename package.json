@@ -1,0 +1,10 @@
+{
+  "name": "trackrecord",
+  "version": "0.0.0",
+  "dependencies": {
+    "keypress": "~0.1.0",
+    "libspotify": "~0.0.1",
+    "rem": "~0.6.1-5"
+  },
+  "license": "MIT"
+}

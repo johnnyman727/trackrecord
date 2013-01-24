@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "dependencies": {
     "keypress": "~0.1.0",
-    "libspotify": "~0.0.1",
+    "libspotify": "git://github.com/Floby/node-libspotify.git",
     "rem": "~0.6.1-5"
   },
   "license": "MIT"

@@ -20,7 +20,7 @@ connectSpotify(function (session) {
   rem.connect('facebook.com').prompt({
     scope: ['user_actions.music', 'friends_actions.music']
   }, function (err, user) {
-    user('tmac721/music.listens').get(function (err, json) {
+    user('jon.mckay/music.listens').get(function (err, json) {
       var songs = [];
       json.data.forEach(function (item) {
         if (item.application && item.application.namespace == 'get-spotify') {
@@ -89,3 +89,6 @@ function playTrack (session, uri, next) {
     });
   });
 }
+
+exports.connectSpotify = connectSpotify;
+exports.playTrack = playTrack;

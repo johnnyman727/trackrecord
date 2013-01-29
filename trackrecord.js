@@ -11,21 +11,25 @@ var streaming = false;
   * Fetch a user's artists from our backend
   */
 function playTracksFromRemote(facebookID) {
-  HTTP_GET(/*'http://entranceapp.herokuapp.com'*/'localhost:5000/', facebookID + '/tracks', function(jsonResponse) {
-    console.log(jsonResponse);
-    convertTracksToSpotifyObjects(jsonResponse.tracks, playTracks)
+  console.log("Retrieving tracks from remote...");
+  HTTP_GET('entranceapp.herokuapp.com', "/" + facebookID + '/tracks', function(jsonResponse) {
+    convertJSONTracksToSpotifyTracks(jsonResponse.tracks, playTracks)
   })
 }
 
 /*
- * This should just be a temporary method to convert arbitrary JSON
+ * This is a method to convert arbitrary JSON
  * tracks (with artist and song title) to spotify track objects. Will
  * be replaced when we add libspotify to the backend too. 
  */
-function convertTracksToSpotifyObjects(tracks, callback) {
+function convertJSONTracksToSpotifyTracks(trackInfo, callback) {
+
+  var numTracksToLoad = trackInfo.length;
+
+  tracks = [];
 
   // For each artist
-  tracks.forEach(function(track) {
+  trackInfo.forEach(function(track) {
 
     artist = track.artist;
 
@@ -51,10 +55,10 @@ function convertTracksToSpotifyObjects(tracks, callback) {
       }
 
       // Keep track of how far we've come
-      loadedTracks++;
+      numTracksToLoad--;
 
       // If we've checked all the artists
-      if (loadedTracks == artists.length) {
+      if (!numTracksToLoad) {
         // Shuffle up the tracks
         shuffle(tracks);
 
@@ -74,10 +78,12 @@ function connectSpotify (callback) {
   spotifySession = new sp.Session({
     applicationKey: process.env.SPOTIFY_KEYPATH
   });
+
+  console.log("Connecting to Spotify...")
   // Log in with our credentials
   spotifySession.login(process.env.SPOTIFY_USERNAME, process.env.SPOTIFY_PASSWORD);
 
-  var player = spotifySession.getPlayer();
+  var player = spotifySession.getPlayer();  
 
   player.on("play", function() { streaming = true; });
 
@@ -90,74 +96,6 @@ function connectSpotify (callback) {
   });
 }
 
-// /*
-//  * Public function to begin playing the favorite tracks of a user
-//  */
-// function playFavorites (facebookAPI, facebookID) {
-
-//     getFavoriteTracks(facebookAPI, facebookID, playTracks);
-// }
-
-// /*
-//  * Poll the appropriate sources to find the favorite artists and songs
-//  * of a user, then call a callback
-//  */
-// function getFavoriteTracks(facebookAPI, facebookID, callback) {
-
-//   // Use the Facebook API to get all the music likes of a user
-//   facebookAPI(facebookID + '/music').get(function (err, json) {
-//     var tracks = [];
-//     var loadedTracks = 0;
-
-//     // Parse the artist names out of the JSON
-//     parseArtistNames(json, function(artists) {
-
-//       // If there were no artists, return
-//       if (!artists.length) { 
-//         console.log("No Artists Returned for facebook ID:" + facebookID);
-//         return;
-//       }
-
-//       // For each artist
-//       artists.forEach(function(artist) {
-
-//         // Create a spotify search
-//         var search = new sp.Search("artist:" + artist);
-//         search.trackCount = 1; // we're only interested in the first result for now;
-
-//         // Execute the search
-//         search.execute();
-
-//         // When the search has been completed
-//         search.once('ready', function() {
-
-//           // If there aren't any searches
-//           if(!search.tracks.length) {
-//               console.error('there is no track to play :[');
-//               return;
-
-//           } else {
-
-//             // Add the track to the rest of the tracks
-//             tracks = tracks.concat(search.tracks);
-//           }
-
-//           // Keep track of how far we've come
-//           loadedTracks++;
-
-//           // If we've checked all the artists
-//           if (loadedTracks == artists.length) {
-//             // Shuffle up the tracks
-//             shuffle(tracks);
-
-//             // Call our callback
-//             callback(tracks);
-//           }
-//         });
-//       });
-//     });
-//   });
-// }
 
 /*
  * Shuffles list in-place
@@ -279,7 +217,11 @@ function playReadyTrack(track, next) {
   });
 }
 
+/*
+ * Wrapper method for HTTP GETs
+ */
 function HTTP_GET(hostname, path, callback) {
+  console.log("Making GET to " + hostname + path);
   // Configure our get request
   var options = {
     host: hostname,
@@ -295,19 +237,16 @@ function HTTP_GET(hostname, path, callback) {
     });
 
     res.on('data', function(chunk) {
-      console.log(chunk);
       output+= chunk;
     });
 
     res.on('end', function() {
-      console.log("Server Response: " + output);
+      // console.log("Server Response: " + output);
       console.log("Status Code: " + res.statusCode);
       callback (JSON.parse(output));
     });
   }); // end of http.get
-
 }
-
 // Export our public functions
 exports.connectSpotify = connectSpotify;
 exports.playFavorites = playTracksFromRemote;

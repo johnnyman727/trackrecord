@@ -5,16 +5,12 @@ var http = require('http');
 var spawn = require('child_process').spawn;
 var keypress = require('keypress'); 
 var spotifySession;
-var streaming = false;
 
  /*
-  * Fetch a user's artists from our backend
+  * Convert JSON to spotify streams and play it
   */
-function playTracksFromRemote(facebookID) {
-  console.log("Retrieving tracks from remote...");
-  HTTP_GET('entranceapp.herokuapp.com', "/" + facebookID + '/tracks', function(jsonResponse) {
-    convertJSONTracksToSpotifyTracks(jsonResponse.tracks, playTracks)
-  })
+function beginPlayingTracks(JSONTracks) {
+  convertJSONTracksToSpotifyTracks(JSONTracks.tracks, beginTrackPlayQueue)
 }
 
 /*
@@ -85,10 +81,6 @@ function connectSpotify (callback) {
 
   var player = spotifySession.getPlayer();  
 
-  player.on("play", function() { streaming = true; });
-
-  player.on("stop", function() { streaming = false; });
-
   // Once we're logged in, continue with the callback
   spotifySession.once('login', function (err) {
     if (err) return console.error('Error:', err);
@@ -132,7 +124,7 @@ function parseArtistNames(json, callback) {
 /*
  * Given a list of spotify tracks, play them all
  */ 
-function playTracks(tracks) {
+function beginTrackPlayQueue(tracks) {
   var i = 0;
 
   // Tim wrote this and I don't really understand his logic
@@ -146,7 +138,7 @@ function playTracks(tracks) {
     console.log('\nPlaying', tracks[i].title + " by " + tracks[i].artist.name);
 
     // Play the song
-    playTrack(spotifySession, tracks[i], function (play) {
+    playTrackWhenReady(spotifySession, tracks[i], function (play) {
       // prepare the key codes for changing the song
       function listenNav (ch, key) {
         if (key.code == '[C' || key.code == '[D') {
@@ -166,7 +158,7 @@ function playTracks(tracks) {
 /*
  * Play a track when it is deemed ready by spotify
  */
-function playTrack (spotifySession, track, next) {
+function playTrackWhenReady (spotifySession, track, next) {
 
   // If the track is already ready, play it!
   if (track.isReady) playReadyTrack(track, next);
@@ -208,7 +200,7 @@ function playReadyTrack(track, next) {
 
   // Print out the track duration
   console.error('playing track. end in %s', track.humanDuration);
-
+  
   // Let us know when it stopped streaming
   player.once('track-end', function() {
     console.error('Track streaming ended.');
@@ -217,37 +209,6 @@ function playReadyTrack(track, next) {
   });
 }
 
-/*
- * Wrapper method for HTTP GETs
- */
-function HTTP_GET(hostname, path, callback) {
-  console.log("Making GET to " + hostname + path);
-  // Configure our get request
-  var options = {
-    host: hostname,
-    path: path
-  };
-
-   http.get(options, function(res) {
-    var output = '';
-    var jsonResult;
-    res.on('error', function(e) {
-      console.log('HTTP Error!');
-      callback(e, null);
-    });
-
-    res.on('data', function(chunk) {
-      output+= chunk;
-    });
-
-    res.on('end', function() {
-      // console.log("Server Response: " + output);
-      console.log("Status Code: " + res.statusCode);
-      callback (JSON.parse(output));
-    });
-  }); // end of http.get
-}
 // Export our public functions
 exports.connectSpotify = connectSpotify;
-exports.playFavorites = playTracksFromRemote;
-exports.isStreaming = streaming;
+exports.playTracks = beginPlayingTracks;

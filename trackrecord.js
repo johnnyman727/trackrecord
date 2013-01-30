@@ -6,6 +6,29 @@ var spawn = require('child_process').spawn;
 var keypress = require('keypress'); 
 var spotifySession;
 
+/*
+ * Beings a spotify session
+ */
+function connectSpotify (callback) {
+  // Create a spotify session wth our api key
+  spotifySession = new sp.Session({
+    applicationKey: process.env.SPOTIFY_KEYPATH
+  });
+
+  console.log("Connecting to Spotify...")
+  // Log in with our credentials
+  spotifySession.login(process.env.SPOTIFY_USERNAME, process.env.SPOTIFY_PASSWORD);
+
+  var player = spotifySession.getPlayer();  
+
+  // Once we're logged in, continue with the callback
+  spotifySession.once('login', function (err) {
+    if (err) return console.error('Error:', err);
+    callback(spotifySession);
+  });
+}
+
+
  /*
   * Convert JSON to spotify streams and play it
   */
@@ -64,61 +87,6 @@ function convertJSONTracksToSpotifyTracks(trackInfo, callback) {
     });
   });
 
-}
-
-/*
- * Beings a spotify session
- */
-function connectSpotify (callback) {
-  // Create a spotify session wth our api key
-  spotifySession = new sp.Session({
-    applicationKey: process.env.SPOTIFY_KEYPATH
-  });
-
-  console.log("Connecting to Spotify...")
-  // Log in with our credentials
-  spotifySession.login(process.env.SPOTIFY_USERNAME, process.env.SPOTIFY_PASSWORD);
-
-  var player = spotifySession.getPlayer();  
-
-  // Once we're logged in, continue with the callback
-  spotifySession.once('login', function (err) {
-    if (err) return console.error('Error:', err);
-    callback(spotifySession);
-  });
-}
-
-
-/*
- * Shuffles list in-place
- */
-function shuffle(list) {
-  var i, j, t;
-  for (i = 1; i < list.length; i++) {
-    j = Math.floor(Math.random()*(1+i));  // choose j in [0..i]
-    if (j != i) {
-      t = list[i];                        // swap list[i] and list[j]
-      list[i] = list[j];
-      list[j] = t;
-    }
-  }
-}
-
-/*
- * Check each json snippet for the artist names
- */
-function parseArtistNames(json, callback) {
-  var names = [];
-  // For each JSON item
-  json.data.forEach(function(item) {
-    // If we have a name field
-    if (item.name) {
-      // Push it into the list
-      names.push(item.name);
-    }
-  });
-  // Call the callback when we're done
-  return callback(names);
 }
 
 /*
@@ -208,6 +176,22 @@ function playReadyTrack(track, next) {
     // spotifySession.close();
   });
 }
+
+/*
+ * Shuffles list in-place
+ */
+function shuffle(list) {
+  var i, j, t;
+  for (i = 1; i < list.length; i++) {
+    j = Math.floor(Math.random()*(1+i));  // choose j in [0..i]
+    if (j != i) {
+      t = list[i];                        // swap list[i] and list[j]
+      list[i] = list[j];
+      list[j] = t;
+    }
+  }
+}
+
 
 // Export our public functions
 exports.connectSpotify = connectSpotify;

@@ -1,4 +1,4 @@
-var rem = require('rem');
+// var rem = require('rem');
 var sp = require('libspotify');
 var fs = require('fs');
 var http = require('http');
@@ -32,8 +32,27 @@ function connectSpotify (callback) {
  /*
   * Convert JSON to spotify streams and play it
   */
-function beginPlayingTracks(JSONTracks) {
+function beginPlayingTracksFromJSON(JSONTracks) {
   convertJSONTracksToSpotifyTracks(JSONTracks.tracks, beginTrackPlayQueue)
+}
+
+/*
+ * Makes tracks from Spotify URLs and plays them.
+ */
+
+function beginPlayingTracksFromURL(urls) {
+  var tracks = [];
+  // get the tracks from the urls
+  urls.forEach(function(url, index) { 
+    var track = sp.Track.getFromUrl(url); 
+    track.on('ready', function() {
+      console.log(track.artist);
+      tracks[index] = track;
+      if (tracks.length == urls.length) {
+        beginTrackPlayQueue(tracks);
+      }
+    });
+  });
 }
 
 /*
@@ -45,7 +64,7 @@ function convertJSONTracksToSpotifyTracks(trackInfo, callback) {
 
   var numTracksToLoad = trackInfo.length;
 
-  tracks = [];
+  var tracks = [];
 
   // For each artist
   trackInfo.forEach(function(track) {
@@ -70,7 +89,11 @@ function convertJSONTracksToSpotifyTracks(trackInfo, callback) {
       } else {
 
         // Add the track to the rest of the tracks
-        tracks = tracks.concat(search.tracks);
+        for (var i = 0; i < search.tracks.length; i++) {
+          if (search.tracks[i].availability == "AVAILABLE") {
+            tracks.push(search.tracks[i]);
+          }
+        }
       }
 
       // Keep track of how far we've come
@@ -195,4 +218,4 @@ function shuffle(list) {
 
 // Export our public functions
 exports.connectSpotify = connectSpotify;
-exports.playTracks = beginPlayingTracks;
+exports.playTracks = beginPlayingTracksFromURL;

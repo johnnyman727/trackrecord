@@ -195,6 +195,5 @@ function shuffle(list) {
 
 
 // Export our public functions
-exports.connectSpotify = connectSpotify;
 exports.playTracks = beginPlayingTracks;
 exports.stopTracks = stopPlayingTracks;

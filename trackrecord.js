@@ -29,13 +29,32 @@ function connectSpotify (callback) {
  /*
   * Convert JSON to spotify streams and play it
   */
-function beginPlayingTracks(JSONTracks) {
+function beginPlayingTracksFromJSON(JSONTracks) {
   convertJSONTracksToSpotifyTracks(JSONTracks.tracks, beginTrackPlayQueue)
 }
 
 function stopPlayingTracks() {
   if (soxThread) soxThread.kill();
 }
+/*
+ * Makes tracks from Spotify URLs and plays them.
+ */
+
+function beginPlayingTracksFromURL(urls) {
+  var tracks = [];
+  // get the tracks from the urls
+  urls.forEach(function(url, index) { 
+    var track = sp.Track.getFromUrl(url); 
+    track.on('ready', function() {
+      console.log(track.artist);
+      tracks[index] = track;
+      if (tracks.length == urls.length) {
+        beginTrackPlayQueue(tracks);
+      }
+    });
+  });
+}
+
 /*
  * This is a method to convert arbitrary JSON
  * tracks (with artist and song title) to spotify track objects. Will
@@ -45,7 +64,7 @@ function convertJSONTracksToSpotifyTracks(trackInfo, callback) {
 
   var numTracksToLoad = trackInfo.length;
 
-  tracks = [];
+  var tracks = [];
 
   // For each artist
   trackInfo.forEach(function(track) {
@@ -70,7 +89,11 @@ function convertJSONTracksToSpotifyTracks(trackInfo, callback) {
       } else {
 
         // Add the track to the rest of the tracks
-        tracks = tracks.concat(search.tracks);
+        for (var i = 0; i < search.tracks.length; i++) {
+          if (search.tracks[i].availability == "AVAILABLE") {
+            tracks.push(search.tracks[i]);
+          }
+        }
       }
 
       // Keep track of how far we've come
@@ -172,6 +195,7 @@ function playReadyTrack(track, next) {
   
   // Let us know when it stopped streaming
   player.once('track-end', function() {
+    player.stop();
     console.error('Track streaming ended.');
     // spotifySession.getPlayer().stop();
     // spotifySession.close();
@@ -195,5 +219,5 @@ function shuffle(list) {
 
 
 // Export our public functions
-exports.playTracks = beginPlayingTracks;
-exports.stopTracks = stopPlayingTracks;
+exports.connectSpotify = connectSpotify;
+exports.playTracks = beginPlayingTracksFromURL;

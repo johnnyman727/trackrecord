@@ -194,6 +194,7 @@ function playReadyTrack(track, next) {
   
   // Let us know when it stopped streaming
   player.once('track-end', function() {
+    player.stop();
     console.error('Track streaming ended.');
     // spotifySession.getPlayer().stop();
     // spotifySession.close();

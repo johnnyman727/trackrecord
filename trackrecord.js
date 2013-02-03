@@ -1,10 +1,7 @@
-var rem = require('rem');
-var sp = require('libspotify');
-var fs = require('fs');
-var http = require('http');
 var spawn = require('child_process').spawn;
 var keypress = require('keypress'); 
 var spotifySession;
+var soxThread;
 
 /*
  * Beings a spotify session
@@ -36,6 +33,9 @@ function beginPlayingTracks(JSONTracks) {
   convertJSONTracksToSpotifyTracks(JSONTracks.tracks, beginTrackPlayQueue)
 }
 
+function stopPlayingTracks() {
+  if (soxThread) soxThread.kill();
+}
 /*
  * This is a method to convert arbitrary JSON
  * tracks (with artist and song title) to spotify track objects. Will
@@ -106,14 +106,14 @@ function beginTrackPlayQueue(tracks) {
     console.log('\nPlaying', tracks[i].title + " by " + tracks[i].artist.name);
 
     // Play the song
-    playTrackWhenReady(spotifySession, tracks[i], function (play) {
+    playTrackWhenReady(spotifySession, tracks[i], function () {
       // prepare the key codes for changing the song
       function listenNav (ch, key) {
         if (key.code == '[C' || key.code == '[D') {
           if (key.code == '[C') i++;
           if (key.code == '[D') i--;
           process.stdin.removeListener('keypress', listenNav);
-          play.kill('SIGHUP');
+          soxThread.kill('SIGHUP');
           navTrack();
         }
       }
@@ -122,6 +122,7 @@ function beginTrackPlayQueue(tracks) {
   }
   navTrack();
 }
+
 
 /*
  * Play a track when it is deemed ready by spotify
@@ -152,11 +153,11 @@ function playReadyTrack(track, next) {
   player.play();
 
   // Start a sox stream
-  var play = spawn('play', ['-r', 44100, '-b', 16, '-L', '-c', 2, '-e', 'signed-integer', '-t', 'raw', '-']);
+  soxThread = spawn('play', ['-r', 44100, '-b', 16, '-L', '-c', 2, '-e', 'signed-integer', '-t', 'raw', '-']);
   // Pipe in the spotify stream
-  player.pipe(play.stdin);
+  player.pipe(soxThread.stdin);
   // Pipe in any errors
-  play.stderr.pipe(process.stderr);
+  soxThread.stderr.pipe(process.stderr);
 
   // Let us know if there is an error
   play.on('exit', function (code) {
@@ -164,7 +165,7 @@ function playReadyTrack(track, next) {
   });
 
   // Get ready for key codes
-  next(play);
+  next();
 
   // Print out the track duration
   console.error('playing track. end in %s', track.humanDuration);
@@ -196,3 +197,4 @@ function shuffle(list) {
 // Export our public functions
 exports.connectSpotify = connectSpotify;
 exports.playTracks = beginPlayingTracks;
+exports.stopTracks = stopPlayingTracks;
